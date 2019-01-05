@@ -1,0 +1,23 @@
+{
+  "name": "bitwarden-report",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@bitwarden/cli": "^1.7.0",
+    "exec-sh": "^0.3.2",
+    "zxcvbn": "^4.4.2"
+  },
+  "devDependencies": {
+    "eslint": "^5.12.0",
+    "eslint-config-google": "^0.11.0"
+  },
+  "bin": {
+    "bw-report": "index.js"
+  }
+}
