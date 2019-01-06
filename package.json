@@ -11,6 +11,7 @@
   "dependencies": {
     "@bitwarden/cli": "^1.7.0",
     "exec-sh": "^0.3.2",
+    "moment": "^2.23.0",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

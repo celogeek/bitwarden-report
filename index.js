@@ -2,14 +2,21 @@
 /* eslint-disable require-jsdoc */
 const execSh = require('exec-sh').promise;
 const zxcvbn = require('zxcvbn');
+const moment = require('moment');
 
-const generateCmd= (args) => {
+function generateCmd(args) {
   let cmd = 'bw';
   for (const c of args) {
     cmd += ' ' + '"' + c.replace(/(["$])/g, '\\$1') + '"';
   }
   return cmd;
-};
+}
+
+function insensitiveSort(a, b) {
+  const sA = a.toLowerCase();
+  const sB = b.toLowerCase();
+  return sA < sB ? -1 : sA > sB ? 1 : 0;
+}
 
 async function bw(...args) {
   return execSh(generateCmd(args), {
@@ -54,11 +61,32 @@ function weakPasswordsReport(passwords) {
       console.log('       - The rest !');
       continue;
     }
-    result[i].sort((a, b) => {
-      const sA = a.toLowerCase();
-      const sB = b.toLowerCase();
-      return sA < sB ? -1 : sA > sB ? 1 : 0;
-    }).forEach((name) => {
+    result[i].sort(insensitiveSort).forEach((name) => {
+      console.log('       -', name);
+    });
+  }
+}
+
+function timeReport(passwords) {
+  console.log('Old Passwords:');
+  const resultType = ['Never changed', 'Above 1 month', 'Above 3 months'];
+  const result = [[], [], []];
+  const now = moment();
+  passwords.forEach(([name, password, revision]) => {
+    if (!revision) {
+      result[0].push(name);
+    } else {
+      const months = now.diff(revision, 'months');
+      if (months > 0 && months < 3) {
+        result[1].push(name);
+      } else if (months >= 3) {
+        result[2].push(name);
+      }
+    }
+  });
+  for (let i = 0; i < resultType.length; i++) {
+    console.log('    *', resultType[i], '(', result[i].length, ')');
+    result[i].sort(insensitiveSort).forEach((name) => {
       console.log('       -', name);
     });
   }
@@ -102,11 +130,13 @@ async function run(login) {
   }
   const data = await bw('list', 'items', '--session', session).then(JSON.parse);
   const passwords = data.filter((d) => d.login && d.login.password).map((d) => {
-    return [d.name, d.login.password];
+    return [d.name, d.login.password, d.login.passwordRevisionDate];
   });
   duplicatesReport(passwords);
   console.log();
   weakPasswordsReport(passwords);
+  console.log();
+  timeReport(passwords);
   console.log();
 }
 
