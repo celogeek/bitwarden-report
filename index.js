@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable require-jsdoc */
 const execSh = require('exec-sh').promise;
 const zxcvbn = require('zxcvbn');
 
@@ -10,13 +11,13 @@ const generateCmd= (args) => {
   return cmd;
 };
 
-const bw = (...args) => {
+async function bw(...args) {
   return execSh(generateCmd(args), {
     stdio: ['inherit', 'pipe', 'inherit'],
-  }).then((r) => r.stdout.trim()).catch((r) => r.stdout.trim());
-};
+  }).then((r) => r.stdout.trim());
+}
 
-const duplicatesReport = (passwords) => {
+function duplicatesReport(passwords) {
   console.log('Duplicate Passwords:');
   const result = {};
   const duplicatePasswords = new Set();
@@ -37,9 +38,9 @@ const duplicatesReport = (passwords) => {
   duplicatePasswords.forEach((d) => {
     console.log('    *', result[d].join(', '));
   });
-};
+}
 
-const weakPasswordsReport = (passwords) => {
+function weakPasswordsReport(passwords) {
   console.log('Weak Passwords:');
   const resultType = ['Very weak', 'Weak', 'Normal', 'Safe', 'Strong'];
   const result = [[], [], [], [], []];
@@ -61,17 +62,39 @@ const weakPasswordsReport = (passwords) => {
       console.log('       -', name);
     });
   }
-};
+}
 
-const run = async () => {
-  const session = await bw('unlock', '--raw');
-  console.log();
-  if (session === 'You are not logged in.') {
-    console.log(session);
-    console.log('Please login to bitwarden first.');
-    console.log('$ bw login');
-    return;
+async function run(login) {
+  let session;
+  if (login) {
+    try {
+      session = await bw('login', login, '--raw');
+    } catch (e) {
+      if (!e.stdout.startsWith('You are already logged')) {
+        console.log(e.stdout);
+        return;
+      }
+      if (e.stdout.trim() !== 'You are already logged in as '+login+'.') {
+        await bw('logout');
+        try {
+          session = await bw('login', login, '--raw');
+        } catch (e) {
+          console.log(e.stdout);
+          return;
+        }
+      }
+    }
   }
+
+  if (!session) {
+    try {
+      session = await bw('unlock', '--raw');
+    } catch (e) {
+      console.log(e.stdout);
+      return;
+    }
+  }
+  console.log();
   const isSync = await bw('sync', '--session', session);
   if (isSync != 'Syncing complete.') {
     console.log(isSync);
@@ -85,6 +108,6 @@ const run = async () => {
   console.log();
   weakPasswordsReport(passwords);
   console.log();
-};
+}
 
-run();
+run(process.argv[2]);
